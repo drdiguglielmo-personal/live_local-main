@@ -134,7 +134,7 @@ const MapboxMap = () => {
       try { if (map) map.remove(); } catch(_) {}
       mapInstanceRef.current = null;
     };
-  }, []);
+  }, [geocode]);
 
 // layout - sidebar (listings) + map container
   return (
