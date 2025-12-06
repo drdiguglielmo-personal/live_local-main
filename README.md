@@ -15,7 +15,6 @@ Live Local helps users discover local businesses (cafes, restaurants, shops, ser
 - **User Authentication**: Sign up, log in, manage your profile
 - **Leave Reviews**: Rate and review businesses you've visited
 - **Business Registration**: Submit your business to the platform with photos (via Cloudinary)
-- **CRM Tool**: Manage contacts, companies, deals, and tasks
 - **Mapbox Integration**: View businesses on an interactive map
 
 ## Tech Stack
