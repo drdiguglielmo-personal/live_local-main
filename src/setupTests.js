@@ -4,6 +4,9 @@
  * Runs before each test suite
  */
 
+// Import testing library matchers
+import '@testing-library/jest-dom';
+
 // Suppress console errors/warnings during tests (optional)
 // const originalError = console.error;
 // beforeAll(() => {
