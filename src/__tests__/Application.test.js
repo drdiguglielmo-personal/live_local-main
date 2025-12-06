@@ -10,17 +10,36 @@
  * - Validation
  */
 
+// Import React and testing utilities
 import React from 'react';
+// @testing-library/react - tools for testing React components
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+// userEvent - simulates user typing/clicking (more realistic than fireEvent)
 import userEvent from '@testing-library/user-event';
+// BrowserRouter - needed because Application uses React Router's Link component
 import { BrowserRouter } from 'react-router-dom';
+// The component we're testing
 import Application from '../components/Application';
 
-// Mock the createBusiness function
+/**
+ * Mock the createBusiness function
+ * 
+ * What is mocking?
+ * - Replace a real function with a fake one for testing
+ * - Why? We don't want to actually save to database during tests
+ * - We can control what the mock returns
+ */
 jest.mock('../models/Business', () => ({
-  createBusiness: jest.fn()
+  createBusiness: jest.fn()  // Create a fake function that we can control
 }));
 
+/**
+ * Helper function to render the Application component with Router
+ * 
+ * Why BrowserRouter?
+ * - Application component uses <Link> which needs Router context
+ * - Wrapping in BrowserRouter provides that context
+ */
 const renderComponent = () => {
   return render(
     <BrowserRouter>
@@ -29,31 +48,65 @@ const renderComponent = () => {
   );
 };
 
+/**
+ * This test suite tests the Application (Business Registration) form component.
+ * These are COMPONENT tests - they test the UI and user interactions.
+ * 
+ * What do we test?
+ * - Form renders correctly (all fields visible)
+ * - User interactions (typing, clicking)
+ * - Form validation
+ * - Modal opens/closes
+ */
 describe('Application Component', () => {
   
+  /**
+   * Test: Verify the form renders on the page
+   */
   describe('Rendering', () => {
+    /**
+     * Test: Check that the main heading text appears
+     * 
+     * screen.getByText() - finds text on the page
+     * /Add your business to our map/i - regex pattern (case-insensitive)
+     * toBeInTheDocument() - verifies element exists in the DOM
+     */
     test('should render the application form', () => {
+      // Render the component to the test DOM
       renderComponent();
+      // Check that the heading text exists (proves form loaded)
       expect(screen.getByText(/Add your business to our map/i)).toBeInTheDocument();
     });
 
+    /**
+     * Test: Verify all form field labels are displayed
+     * 
+     * Why test this?
+     * - Ensures all required fields are visible to users
+     * - Catches if a field accidentally gets hidden
+     * - Verifies form structure is correct
+     */
     test('should display all required form labels', () => {
       renderComponent();
       
+      // List of all form field labels that should be visible
       const labels = [
-        'Email',
-        'Business Name',
-        'Business Type',
-        'Street Address',
-        'Town/City',
-        'State',
-        'ZIP/Postal Code',
-        'Keywords',
-        'Business Description',
-        'Business Image'
+        'Email',              // Contact email
+        'Business Name',      // Name of business
+        'Business Type',      // Dropdown (restaurant, cafe, etc.)
+        'Street Address',     // Street address line
+        'Town/City',          // City name
+        'State',              // State/province
+        'ZIP/Postal Code',    // ZIP code
+        'Keywords',           // Search keywords
+        'Business Description', // Description text
+        'Business Image'      // Image upload field
       ];
 
+      // Check each label exists on the page
       labels.forEach(label => {
+        // new RegExp(label, 'i') - create case-insensitive regex
+        // screen.getByText() - find text matching the pattern
         expect(screen.getByText(new RegExp(label, 'i'))).toBeInTheDocument();
       });
     });
@@ -71,12 +124,32 @@ describe('Application Component', () => {
     });
   });
 
+  /**
+   * Test: Verify form input fields exist and have correct properties
+   * 
+   * What properties do we check?
+   * - Field exists (is rendered)
+   * - Input type (email, text, etc.)
+   * - Required flag (HTML5 validation)
+   */
   describe('Form Fields', () => {
+    /**
+     * Test: Verify email input field
+     * 
+     * What is an email input?
+     * - HTML input with type="email"
+     * - Browser validates email format automatically
+     * - Shows keyboard optimized for email on mobile
+     */
     test('should have email input', () => {
       renderComponent();
+      // Find input by placeholder text
       const emailInput = screen.getByPlaceholderText(/Enter Email/i);
+      // Verify it exists
       expect(emailInput).toBeInTheDocument();
+      // Verify it's an email input (not text input)
       expect(emailInput.type).toBe('email');
+      // Verify it's required (can't submit form without it)
       expect(emailInput.required).toBe(true);
     });
 
@@ -127,19 +200,41 @@ describe('Application Component', () => {
     });
   });
 
+  /**
+   * Test: Additional Locations Modal
+   * 
+   * What is a modal?
+   * - A popup dialog that appears over the main form
+   * - Used to add additional business locations
+   * - Should open when button is clicked, close when done
+   */
   describe('Additional Locations Modal', () => {
+    /**
+     * Test: Verify the "Add Location" button exists
+     */
     test('should display add location button', () => {
       renderComponent();
+      // getByRole('button') - find button by its role (better than searching text)
       const addButton = screen.getByRole('button', { name: /Add Additional Location/i });
       expect(addButton).toBeInTheDocument();
     });
 
+    /**
+     * Test: Verify clicking button opens the modal
+     * 
+     * What happens?
+     * 1. User clicks "Add Additional Location" button
+     * 2. Modal should appear with form fields
+     * 3. Modal heading "Add Location" should be visible
+     */
     test('should open modal when add location button is clicked', () => {
       renderComponent();
       const addButton = screen.getByRole('button', { name: /Add Additional Location/i });
       
+      // Simulate a click event
       fireEvent.click(addButton);
       
+      // Verify modal opened (check for modal heading text)
       expect(screen.getByText('Add Location')).toBeInTheDocument();
     });
 
@@ -168,24 +263,51 @@ describe('Application Component', () => {
     });
   });
 
+  /**
+   * Test: Form validation
+   * 
+   * What is form validation?
+   * - Checking that user entered correct data
+   * - HTML5 validation: browser checks required fields automatically
+   * - Email format validation, etc.
+   */
   describe('Form Validation', () => {
+    /**
+     * Test: Verify form can't be submitted when empty
+     * 
+     * HTML5 validation:
+     * - If a field has required="true", browser prevents submission
+     * - Form won't submit until all required fields are filled
+     */
     test('form should require all fields to be filled', async () => {
       renderComponent();
       const submitButton = screen.getByRole('button', { name: /Register/i });
       
-      // Try submitting empty form
+      // Try submitting empty form (click submit button)
       fireEvent.click(submitButton);
       
       // The form shouldn't submit because required fields are empty
       // (HTML5 validation prevents submission)
+      // Button should still be visible (form didn't submit, page didn't change)
       expect(submitButton).toBeInTheDocument();
     });
 
+    /**
+     * Test: Verify email input accepts valid email format
+     * 
+     * userEvent.type() vs fireEvent.change():
+     * - userEvent.type() simulates actual typing (character by character)
+     * - More realistic than just setting the value
+     * - Tests that input handles typing correctly
+     */
     test('should accept valid email', async () => {
       renderComponent();
       const emailInput = screen.getByPlaceholderText(/Enter Email/i);
       
+      // Simulate user typing an email address
+      // await because userEvent.type() is async
       await userEvent.type(emailInput, 'test@example.com');
+      // Verify the value was set correctly
       expect(emailInput.value).toBe('test@example.com');
     });
 
