@@ -13,13 +13,17 @@
 // Import React and testing utilities
 import React from 'react';
 // @testing-library/react - tools for testing React components
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 // userEvent - simulates user typing/clicking (more realistic than fireEvent)
 import userEvent from '@testing-library/user-event';
-// BrowserRouter - needed because Application uses React Router's Link component
-import { BrowserRouter } from 'react-router-dom';
 // The component we're testing
 import Application from '../components/Application';
+
+/**
+ * Mock react-router-dom
+ * Jest will automatically use the manual mock from __mocks__/react-router-dom.js
+ */
+jest.mock('react-router-dom');
 
 /**
  * Mock the createBusiness function
@@ -30,17 +34,24 @@ import Application from '../components/Application';
  * - We can control what the mock returns
  */
 jest.mock('../models/Business', () => ({
-  createBusiness: jest.fn()  // Create a fake function that we can control
+  createBusiness: jest.fn().mockResolvedValue({
+    toJSON: () => ({
+      objectId: 'test-id-123',
+      Name: 'Test Business',
+      Category: 'restaurant'
+    })
+  })
 }));
 
 /**
- * Helper function to render the Application component with Router
+ * Helper function to render the Application component
  * 
- * Why BrowserRouter?
- * - Application component uses <Link> which needs Router context
- * - Wrapping in BrowserRouter provides that context
+ * Note: BrowserRouter is mocked via __mocks__/react-router-dom.js
+ * The mock provides a simple wrapper that just renders children
  */
 const renderComponent = () => {
+  // Import BrowserRouter from the mock
+  const { BrowserRouter } = require('react-router-dom');
   return render(
     <BrowserRouter>
       <Application />
@@ -59,6 +70,19 @@ const renderComponent = () => {
  * - Modal opens/closes
  */
 describe('Application Component', () => {
+  // Reset mocks before each test to ensure clean state
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset createBusiness to default successful mock
+    const { createBusiness } = require('../models/Business');
+    createBusiness.mockResolvedValue({
+      toJSON: () => ({
+        objectId: 'test-id-123',
+        Name: 'Test Business',
+        Category: 'restaurant'
+      })
+    });
+  });
   
   /**
    * Test: Verify the form renders on the page
@@ -192,11 +216,14 @@ describe('Application Component', () => {
 
     test('should have file input', () => {
       renderComponent();
-      const fileInput = screen.getByDisplayValue('');
-      const fileInputs = screen.getAllByDisplayValue('');
-      const imageInput = fileInputs.find(input => input.type === 'file');
-      expect(imageInput).toBeInTheDocument();
-      expect(imageInput.required).toBe(true);
+      // Find file input by its type attribute (more specific than displayValue)
+      const imageInput = screen.getByLabelText(/Business Image/i).nextElementSibling || 
+                         document.querySelector('input[type="file"]');
+      // Alternative: find by role if available, or query directly
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      const imageInput2 = Array.from(fileInputs).find(input => input.name === 'image' || input.id === 'image');
+      expect(imageInput2).toBeInTheDocument();
+      expect(imageInput2.required).toBe(true);
     });
   });
 
@@ -234,8 +261,10 @@ describe('Application Component', () => {
       // Simulate a click event
       fireEvent.click(addButton);
       
-      // Verify modal opened (check for modal heading text)
-      expect(screen.getByText('Add Location')).toBeInTheDocument();
+      // Verify modal opened (check for modal heading - use getAllByText and check for h2)
+      const locationHeadings = screen.getAllByText('Add Location');
+      const modalHeading = locationHeadings.find(el => el.tagName === 'H2');
+      expect(modalHeading).toBeInTheDocument();
     });
 
     test('modal should have location form fields', async () => {
@@ -323,11 +352,23 @@ describe('Application Component', () => {
   describe('Form Submission', () => {
     test('should call createBusiness with correct data structure', async () => {
       const { createBusiness } = require('../models/Business');
-      createBusiness.mockResolvedValue({ toJSON: () => ({}) });
+      // Ensure mock returns a proper Parse-like object
+      createBusiness.mockResolvedValue({
+        toJSON: () => ({
+          objectId: 'test-id',
+          Name: 'Test Business'
+        })
+      });
 
-      renderComponent();
+      // Suppress console.log for cleaner test output
+      const originalLog = console.log;
+      console.log = jest.fn();
 
-      // Fill form
+      await act(async () => {
+        renderComponent();
+      });
+
+      // Fill form - userEvent automatically handles act() internally
       await userEvent.type(screen.getByPlaceholderText(/Enter Email/i), 'test@example.com');
       await userEvent.type(screen.getByPlaceholderText(/Enter Business Name/i), 'Test Restaurant');
       await userEvent.selectOptions(screen.getByDisplayValue(/Select a type/i), 'restaurant');
@@ -338,18 +379,36 @@ describe('Application Component', () => {
       await userEvent.type(screen.getByPlaceholderText(/Enter keywords/i), 'pizza');
       await userEvent.type(screen.getByPlaceholderText(/Tell us about your business/i), 'Great pizza');
 
+      // Restore console.log
+      console.log = originalLog;
+
       // Note: File input testing is complex and requires special handling
       // For now, we'll test the form structure instead
     });
 
     test('should reset form after successful submission', async () => {
       const { createBusiness } = require('../models/Business');
-      createBusiness.mockResolvedValue({ toJSON: () => ({}) });
+      // Ensure mock returns a proper Parse-like object
+      createBusiness.mockResolvedValue({
+        toJSON: () => ({
+          objectId: 'test-id',
+          Name: 'Test Business'
+        })
+      });
 
-      renderComponent();
+      // Suppress console.log for cleaner test output
+      const originalLog = console.log;
+      console.log = jest.fn();
+
+      await act(async () => {
+        renderComponent();
+      });
 
       const emailInput = screen.getByPlaceholderText(/Enter Email/i);
       await userEvent.type(emailInput, 'test@example.com');
+
+      // Restore console.log
+      console.log = originalLog;
 
       // After successful submission, field should be cleared
       // (This happens after alert and form reset)
@@ -362,10 +421,21 @@ describe('Application Component', () => {
       const mockError = new Error('Network error');
       createBusiness.mockRejectedValue(mockError);
 
+      // Suppress console.error and console.log for this test since we're intentionally testing error handling
+      const originalError = console.error;
+      const originalLog = console.log;
+      console.error = jest.fn();
+      console.log = jest.fn();
+
       renderComponent();
       
       // The component should catch the error and show localStorage fallback message
       // Actual submission would happen on form submit
+      // We're just verifying the component renders without crashing
+      
+      // Restore console methods after test
+      console.error = originalError;
+      console.log = originalLog;
     });
   });
 });
