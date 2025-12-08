@@ -6,7 +6,7 @@ A web application to discover and support local businesses in your community.
 
 ## Overview
 
-Live Local helps users discover local businesses (cafes, restaurants, shops, services) and leave reviews. Business owners can submit their businesses to appear on the platform. The app includes a simple CRM tool for managing customer interactions.
+Live Local helps users discover local businesses (cafes, restaurants, shops, services) and leave reviews. Business owners can submit their businesses to appear on the platform.
 
 ### Key Features
 
@@ -113,7 +113,6 @@ src/
     BusinessList.js     # Business listing with search
     Profile.js          # User profile component (uses Parse.User)
     Results.js          # Search results page
-    CRM/                # Customer relationship management tools
   models/
     Business.js         # Parse Business CRUD operations
     Review.js           # Parse Review CRUD operations
@@ -151,17 +150,6 @@ Run `npm test` to verify functionality.
 
 See [TESTING.md](./TESTING.md) for detailed test documentation.
 
-### CRM Tool
-
-Manage customer relationships with:
-- Contact list and creation
-- Company management
-- Deal tracking
-- Task scheduling
-- Activity logging
-
-Accessible via **CRM Dashboard** (authenticated users only).
-
 ## Troubleshooting
 
 ### Images Not Uploading
@@ -186,10 +174,6 @@ Run `npm test` to see detailed error messages. Most failures are due to:
 ## Documentation
 
 - [CHANGELOG.md](./CHANGELOG.md) - Version history and feature updates
-- [CLOUDINARY_SETUP.md](./CLOUDINARY_SETUP.md) - Image hosting setup guide
-- [NETLIFY_SETUP.md](./NETLIFY_SETUP.md) - Deployment instructions
-- [TESTING.md](./TESTING.md) - Test suite documentation
-- [CRM_SETUP.md](./CRM_SETUP.md) - CRM feature setup (Parse classes)
 
 ## Contributing
 
