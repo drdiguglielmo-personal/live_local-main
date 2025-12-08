@@ -111,12 +111,12 @@ src/
     BusinessCard.js     # Business tile component
     BusinessDetail.js   # Business detail view
     BusinessList.js     # Business listing with search
-    Profile.js          # User profile management
+    Profile.js          # User profile component (uses Parse.User)
     Results.js          # Search results page
     CRM/                # Customer relationship management tools
   models/
     Business.js         # Parse Business CRUD operations
-    Profile.js          # Parse Profile CRUD operations
+    Review.js           # Parse Review CRUD operations
     Review.js           # Parse Review CRUD operations
   services/
     authService.js      # Authentication utilities
